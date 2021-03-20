@@ -74,6 +74,11 @@ func match(subTopic []string, topic []string) bool {
 		return true
 	}
 
+	// {product_id}/{device_id}/data
+	if topic[0] == "data" {
+		return true
+	}
+
 	if (subTopic[0] == "+") || (subTopic[0] == topic[0]) {
 		return match(subTopic[1:], topic[1:])
 	}
