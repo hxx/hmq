@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"strings"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -29,7 +28,7 @@ type kafka struct {
 //Init init kafak client
 func InitKafka() *kafka {
 	log.Info("start connect kafka....")
-	content, err := ioutil.ReadFile("./plugins/kafka/kafka.json")
+	content, err := ioutil.ReadFile("./plugins/bridge/kafka/kafka.json")
 	if err != nil {
 		log.Fatal("Read config file error: ", zap.Error(err))
 	}
@@ -124,33 +123,4 @@ func (k *kafka) publish(topics map[string]bool, key string, msg *Elements) error
 	}
 
 	return nil
-}
-
-func match(subTopic []string, topic []string) bool {
-	if len(subTopic) == 0 {
-		if len(topic) == 0 {
-			return true
-		}
-		return false
-	}
-
-	if len(topic) == 0 {
-		if subTopic[0] == "#" {
-			return true
-		}
-		return false
-	}
-
-	if subTopic[0] == "#" {
-		return true
-	}
-
-	if (subTopic[0] == "+") || (subTopic[0] == topic[0]) {
-		return match(subTopic[1:], topic[1:])
-	}
-	return false
-}
-
-func matchTopic(subTopic string, topic string) bool {
-	return match(strings.Split(subTopic, "/"), strings.Split(topic, "/"))
 }
