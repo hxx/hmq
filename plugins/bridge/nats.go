@@ -1,28 +1,34 @@
 package bridge
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-
 	"github.com/nats-io/stan.go"
 	"go.uber.org/zap"
+	"io/ioutil"
 )
 
 type natsConfig struct {
-	Addr            string            `json:"addr"`
-	ClusterId       string            `json:"cluster_id"`
-	ClientId        string            `json:"client_id"`
-	ConnectTopic    string            `json:"connect_topic"`
-	DisconnectTopic string            `json:"disconnect_topic"`
-	Topic           string            `json:"topic"`
-	DeliverMap      map[string]string `json:"deliver_map"`
+	Addr        string            `json:"addr"`
+	ClusterId   string            `json:"cluster_id"`
+	ClientId    string            `json:"client_id"`
+	StateTopic  string            `json:"state_topic"`
+	ReportTopic string            `json:"report_topic"`
+	DeliverMap  map[string]string `json:"deliver_map"`
 }
 
 type natsClient struct {
 	natsConfig natsConfig
 	natsConn   stan.Conn
+}
+
+type EventMsg struct {
+	ClientID  string                 `json:"client_id"`
+	Ts        int64                  `json:"ts"`
+	Payload   map[string]interface{} `json:"payload,omitempty"`
+	EventType string                 `json:"event_type"`
 }
 
 //Init init nats client
@@ -57,32 +63,53 @@ func (n *natsClient) connect() {
 func (n *natsClient) Publish(e *Elements) error {
 	log.Debug("element: ", zap.Any("element", e))
 	switch e.Action {
-	case Connect:
-		return n.publish(n.natsConfig.Topic, e.ClientID, "Connected")
+	case Connect, Disconnect:
+		eMsg := &EventMsg{
+			ClientID:  e.ClientID,
+			Ts:        e.Timestamp,
+			EventType: e.Action,
+		}
+		eMsgStr, err := json.Marshal(eMsg)
+		if err != nil {
+			return err
+		}
+		return n.publish(n.natsConfig.StateTopic, fmt.Sprintf("%s", base64.StdEncoding.EncodeToString(eMsgStr)))
 	case Publish:
 		if e.Topic != "" {
 			for reg, topic := range n.natsConfig.DeliverMap {
 				match := matchTopic(reg, e.Topic)
 				if match {
-					return n.publish( topic, e.ClientID, e.Payload )
+					var payload map[string]interface{}
+					if err := json.Unmarshal([]byte(e.Payload), &payload); err != nil {
+						return err
+					}
+					eMsg := &EventMsg{
+						ClientID:  e.ClientID,
+						Ts:        e.Timestamp,
+						Payload:   payload,
+						EventType: e.Action,
+					}
+					eMsgStr, err := json.Marshal(eMsg)
+					if err != nil {
+						return err
+					}
+					return n.publish(topic, fmt.Sprintf("%s", base64.StdEncoding.EncodeToString(eMsgStr)))
 				}
 			}
 		}
-	case Disconnect:
-		return n.publish(n.natsConfig.Topic, e.ClientID, "Disconnected")
 	default:
 		return errors.New("error action: " + e.Action)
 	}
 	return nil
 }
 
-func (n *natsClient) publish(topic string, clientId string, msg string) error {
+func (n *natsClient) publish(topic string, msg string) error {
 	payload, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
 
-	if err := n.natsConn.Publish(topic, []byte(fmt.Sprintf("%s: %s", clientId, payload))); err != nil {
+	if err := n.natsConn.Publish(topic, []byte(fmt.Sprintf("%s", payload))); err != nil {
 		return err
 	}
 

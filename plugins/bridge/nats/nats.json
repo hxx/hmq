@@ -2,9 +2,8 @@
     "addr":"127.0.0.1:4222",
     "cluster_id": "test-cluster",
     "client_id": "testClient92",
-    "connect_topic": "hxx_test",
-    "disconnect_topic": "hxx_test",
-    "topic": "hxx_test",
+    "state_topic": "hxx_test",
+    "report_topic": "hxx_test",
     "deliver_map": {
         "+/+/data": "hxx_test"
     }
