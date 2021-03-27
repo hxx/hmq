@@ -1,7 +1,6 @@
 package bridge
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -69,11 +68,11 @@ func (n *natsClient) Publish(e *Elements) error {
 			Ts:        e.Timestamp,
 			EventType: e.Action,
 		}
-		eMsgStr, err := json.Marshal(eMsg)
+		eMsgByte, err := json.Marshal(eMsg)
 		if err != nil {
 			return err
 		}
-		return n.publish(n.natsConfig.StateTopic, fmt.Sprintf("%s", base64.StdEncoding.EncodeToString(eMsgStr)))
+		return n.natsConn.Publish(n.natsConfig.StateTopic, eMsgByte)
 	case Publish:
 		if e.Topic != "" {
 			for reg, topic := range n.natsConfig.DeliverMap {
@@ -89,29 +88,16 @@ func (n *natsClient) Publish(e *Elements) error {
 						Payload:   payload,
 						EventType: e.Action,
 					}
-					eMsgStr, err := json.Marshal(eMsg)
+					eMsgByte, err := json.Marshal(eMsg)
 					if err != nil {
 						return err
 					}
-					return n.publish(topic, fmt.Sprintf("%s", base64.StdEncoding.EncodeToString(eMsgStr)))
+					return n.natsConn.Publish(topic, eMsgByte)
 				}
 			}
 		}
 	default:
 		return errors.New("error action: " + e.Action)
 	}
-	return nil
-}
-
-func (n *natsClient) publish(topic string, msg string) error {
-	payload, err := json.Marshal(msg)
-	if err != nil {
-		return err
-	}
-
-	if err := n.natsConn.Publish(topic, []byte(fmt.Sprintf("%s", payload))); err != nil {
-		return err
-	}
-
 	return nil
 }
