@@ -3,7 +3,6 @@
     "cluster_id": "test-cluster",
     "client_id": "testClient92",
     "state_topic": "hxx_test",
-    "report_topic": "hxx_test",
     "deliver_map": {
         "+/+/data": "hxx_test"
     }

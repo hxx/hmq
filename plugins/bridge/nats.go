@@ -14,7 +14,6 @@ type natsConfig struct {
 	ClusterId   string            `json:"cluster_id"`
 	ClientId    string            `json:"client_id"`
 	StateTopic  string            `json:"state_topic"`
-	ReportTopic string            `json:"report_topic"`
 	DeliverMap  map[string]string `json:"deliver_map"`
 }
 
