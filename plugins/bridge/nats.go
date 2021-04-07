@@ -10,11 +10,11 @@ import (
 )
 
 type natsConfig struct {
-	Addr        string            `json:"addr"`
-	ClusterId   string            `json:"cluster_id"`
-	ClientId    string            `json:"client_id"`
-	StateTopic  string            `json:"state_topic"`
-	DeliverMap  map[string]string `json:"deliver_map"`
+	Addr       string            `json:"addr"`
+	ClusterId  string            `json:"cluster_id"`
+	ClientId   string            `json:"client_id"`
+	StateTopic string            `json:"state_topic"`
+	DeliverMap map[string]string `json:"deliver_map"`
 }
 
 type natsClient struct {
@@ -23,10 +23,10 @@ type natsClient struct {
 }
 
 type EventMsg struct {
-	ClientID  string                 `json:"client_id"`
-	Ts        int64                  `json:"ts"`
-	Payload   map[string]interface{} `json:"payload,omitempty"`
-	EventType string                 `json:"event_type"`
+	ClientID  string `json:"client_id"`
+	Ts        int64  `json:"ts"`
+	Payload   string `json:"payload,omitempty"`
+	EventType string `json:"event_type"`
 }
 
 //Init init nats client
@@ -77,14 +77,10 @@ func (n *natsClient) Publish(e *Elements) error {
 			for reg, topic := range n.natsConfig.DeliverMap {
 				match := matchTopic(reg, e.Topic)
 				if match {
-					var payload map[string]interface{}
-					if err := json.Unmarshal([]byte(e.Payload), &payload); err != nil {
-						return err
-					}
 					eMsg := &EventMsg{
 						ClientID:  e.ClientID,
 						Ts:        e.Timestamp,
-						Payload:   payload,
+						Payload:   e.Payload,
 						EventType: e.Action,
 					}
 					eMsgByte, err := json.Marshal(eMsg)
