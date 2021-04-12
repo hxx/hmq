@@ -3,11 +3,13 @@ package auth
 import (
 	authfile "github.com/fhmq/hmq/plugins/auth/authfile"
 	"github.com/fhmq/hmq/plugins/auth/authhttp"
+	"github.com/fhmq/hmq/plugins/auth/authmango"
 )
 
 const (
-	AuthHTTP = "authhttp"
-	AuthFile = "authfile"
+	AuthMango = "authmango"
+	AuthHTTP  = "authhttp"
+	AuthFile  = "authfile"
 )
 
 type Auth interface {
@@ -17,6 +19,8 @@ type Auth interface {
 
 func NewAuth(name string) Auth {
 	switch name {
+	case AuthMango:
+		return authmango.Init()
 	case AuthHTTP:
 		return authhttp.Init()
 	case AuthFile:
