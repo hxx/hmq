@@ -14,6 +14,12 @@ var (
 	log = logger.Get().Named("authmango")
 )
 
+const (
+	SUB      = "1"
+	PUB      = "2"
+	PUBSUB   = "3"
+)
+
 //Init init authMango
 func Init() *authMango {
 	return &authMango{}
@@ -119,6 +125,14 @@ func (a *authMango) CheckACL(action, clientID, username, ip, topic string) bool 
 	if _, ok := acl.TopicList[topic]; !ok {
 		log.Error("custom topic not in topic list.")
 		return false
+	}
+
+	// 发布动作时，检测该 topic 是否是只读
+	if action == PUB || action == PUBSUB {
+		if acl.TopicList[topic] == "r" {
+			log.Error("this custom topic can't publish")
+			return false
+		}
 	}
 
 	addCache(action, clientID, "", "", topic)
