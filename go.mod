@@ -11,10 +11,14 @@ require (
 	github.com/gin-gonic/gin v1.4.0
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
+	github.com/jonboulle/clockwork v0.2.2 // indirect
+	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
+	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/nats-io/nats-server/v2 v2.2.0 // indirect
 	github.com/nats-io/nats-streaming-server v0.21.1 // indirect
 	github.com/nats-io/stan.go v0.8.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/satori/go.uuid v1.2.0
 	github.com/segmentio/fasthash v0.0.0-20180216231524-a72b379d632e
 	github.com/stretchr/testify v1.6.1
 	github.com/tidwall/gjson v1.6.8

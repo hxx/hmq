@@ -52,4 +52,5 @@ func init() {
 
 	//初始化表格
 	AclColl = mongoDB.Database(database).Collection(Acl{}.TableName())
+	LicenseBatchColl = mongoDB.Database(database).Collection(LicenseBatch{}.TableName())
 }

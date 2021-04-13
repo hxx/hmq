@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -9,15 +10,16 @@ import (
 var AclColl *mongo.Collection
 
 type Acl struct {
-	DeviceSecret string `bson:"device_secret"`
-	DeviceID     string `bson:"device_id"`
-	ProductID    string `bson:"product_id"`
-	PasswordHash string `bson:"password_hash"`
-	Role         int    `bson:"role"`
-	Username     string `bson:"username"`
-	Password     string `bson:"password"`
-	CreateTime   string `bson:"create_time"`
-	UpdateTime   string `bson:"update_time"`
+	BatchId      string            `bson:"batch_id"`
+	ProductID    string            `bson:"product_id"`
+	DeviceID     string            `bson:"device_id"`
+	DeviceSecret string            `bson:"device_secret"`
+	PasswordHash string            `bson:"password_hash"`
+	Role         int               `bson:"role"`
+	Username     string            `bson:"username"`
+	Password     string            `bson:"password"`
+	CreateTime   string            `bson:"create_time"`
+	UpdateTime   string            `bson:"update_time"`
 	TopicList    map[string]string `bson:"topic_list"`
 }
 
