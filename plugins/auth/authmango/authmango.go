@@ -97,8 +97,8 @@ func (a *authMango) CheckACL(action, clientID, username, ip, topic string) bool 
 	}
 
 	// 自定义 topic
-	productId := strings.Split(clientID, "&")[0]
-	deviceId := strings.Split(clientID, "&")[1]
+	productId := strings.Split(topic, "/")[0]
+	deviceId := strings.Split(topic, "/")[1]
 
 	if len(productId) == 0 {
 		log.Error("productId is empty: ")
