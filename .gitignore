@@ -5,5 +5,4 @@ log/*
 .vscode/settings.json
 .pre-commit-config.yaml
 
-config.toml
 .idea
