@@ -16,7 +16,7 @@ type authCache struct {
 
 var (
 	// cache = make(map[string]authCache)
-	c = cache.New(5*time.Minute, 10*time.Minute)
+	c = cache.New(24*time.Hour, 1*time.Hour)
 )
 
 func checkCache(action, clientID, username, password, topic string) *authCache {
