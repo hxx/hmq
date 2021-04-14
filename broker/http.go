@@ -59,6 +59,9 @@ func InitHTTPMoniter(b *Broker) {
 		context.Next()
 	})
 
+	// 检查未完成的 license batch
+	go initCheckAcl()
+
 	serverRun(b)
 }
 
@@ -122,7 +125,7 @@ func serverRun(b *Broker) {
 		}
 
 		// 创建 acl
-		go checkAndCreateAcl(amount, amount, batchId, productId, requestId, lb)
+		go checkAndCreateAcl(*lb, requestId)
 
 		li := licenseInfo{
 			BatchId:   batchId,
@@ -210,13 +213,14 @@ func createAcl(batchId, productId, requestId string) {
 	if err != nil {
 		loge.Error(zap.Any("create acl failed.", err), zap.Any("acl", acl), zap.Any("request_id", requestId))
 	}
+	loge.Debug(zap.Any("acl", *acl), zap.Any("request_id", requestId))
 }
 
-func checkAndCreateAcl(total, remaining int, batchId, productId, requestId string, lb *model.LicenseBatch) {
+func checkAndCreateAcl(lb model.LicenseBatch, requestId string) {
 	// 检测创建的acl数量
 	var acl model.Acl
 	m := bson.M{
-		"batch_id": batchId,
+		"batch_id": lb.BatchId,
 	}
 	aclList, err := acl.List(m)
 
@@ -224,14 +228,15 @@ func checkAndCreateAcl(total, remaining int, batchId, productId, requestId strin
 		loge.Error(zap.Any("get acl failed", err), zap.Any("request_id", requestId))
 		return
 	}
+	loge.Debug(zap.Any("license batch", lb), zap.Any("aclList count", len(aclList)), zap.Any("aclList", aclList), zap.Any("request_id", requestId))
 
-	remaining = total-len(aclList)
+	remaining := lb.Amount-len(aclList)
 	for i := 0; i < remaining; i++ {
-		createAcl(batchId, productId, requestId)
+		createAcl(lb.BatchId, lb.ProductId, requestId)
 	}
 
 	// 已创建数量达到目标数量时，改变 license batch 状态
-	if len(aclList) == total {
+	if len(aclList) == lb.Amount {
 		filter := bson.M{"batch_id": bson.M{"$eq": lb.BatchId}}
 		update := bson.M{"$set": bson.M{"status": 2}}
 		if err := lb.UpdateOne(filter, update); err != nil {
@@ -242,9 +247,28 @@ func checkAndCreateAcl(total, remaining int, batchId, productId, requestId strin
 
 	// 剩余数量大于0时，继续创建acl
 	if remaining > 0 {
-		checkAndCreateAcl(total, remaining, batchId, productId, requestId, lb)
+		checkAndCreateAcl(lb, requestId)
 		return
 	}
 
+	return
+}
+
+func initCheckAcl() {
+	requestId := fmt.Sprintf("%s_%s", "init_request_id", strings.ReplaceAll(uuid.NewV4().String(), "-", ""))
+	var lb model.LicenseBatch
+	m := bson.M{}
+	lbList, err := lb.List(m)
+	if err != nil {
+		loge.Error(zap.Any("get license batch list failed", err), zap.Any("request_id", requestId))
+		return
+	}
+	loge.Debug(zap.Any("lbList", lbList), zap.Any("request_id", requestId))
+
+	for _, lb := range lbList {
+		if lb.Status == 1 {
+			checkAndCreateAcl(lb, requestId)
+		}
+	}
 	return
 }
