@@ -121,64 +121,8 @@ func serverRun(b *Broker) {
 			return
 		}
 
-		status := make(chan string)
-
 		// 创建 acl
-		go func() {
-			s := 0
-			for i := 0; i < amount; i++ {
-				deviceId := strings.ReplaceAll(uuid.NewV4().String(), "-", "")
-				deviceSecret := strings.ReplaceAll(uuid.NewV4().String(), "-", "")[0:18]
-				currentTime := time.Now().Format("2006/01/02 15:04:05")
-				username := fmt.Sprintf("%s&%s", productId, deviceId)
-
-				// 默认sha1
-				mac := hmac.New(sha1.New, []byte(deviceSecret))
-				mac.Write([]byte(fmt.Sprintf("%s%s", productId, deviceId)))
-				password := fmt.Sprintf("%x", mac.Sum(nil))
-
-				acl := &model.Acl{
-					BatchId:      batchId,
-					ProductID:    productId,
-					DeviceSecret: deviceSecret,
-					DeviceID:     deviceId,
-					PasswordHash: "sha1",
-					Role:         3, // 普通设备
-					Username:     username,
-					Password:     password,
-					CreateTime:   currentTime,
-					UpdateTime:   currentTime,
-					TopicList:    map[string]string{},
-				}
-				err := acl.Create()
-				if err != nil {
-					loge.Error(zap.Any("create acl failed.", err), zap.Any("acl", acl), zap.Any("request_id", requestId))
-					continue
-				}
-				s = s + 1
-				if s == amount {
-					status <- "success"
-				}
-			}
-		}()
-
-		// 全部创建成功则修改 license batch 状态
-		go func() {
-			for {
-				select {
-				case <-status:
-					filter := bson.M{"batch_id": bson.M{"$eq": lb.BatchId}}
-					update := bson.M{"$set": bson.M{"status": 2}}
-					if err := lb.UpdateOne(filter, update); err != nil {
-						loge.Error(zap.Any("update license batch failed.", err), zap.Any("lb", lb), zap.Any("request_id", requestId))
-					}
-					return
-				case <-time.After(30 * time.Second):
-					loge.Error(zap.Any("update license batch time out.", fmt.Sprintf("%d",time.Now().Second())), zap.Any("lb", lb), zap.Any("request_id", requestId))
-					return
-				}
-			}
-		}()
+		go checkAndCreateAcl(amount, amount, batchId, productId, requestId, lb)
 
 		li := licenseInfo{
 			BatchId:   batchId,
@@ -236,4 +180,71 @@ func serverRun(b *Broker) {
 	})
 
 	router.Run(":" + b.config.HTTPPort)
+}
+
+func createAcl(batchId, productId, requestId string) {
+	deviceId := strings.ReplaceAll(uuid.NewV4().String(), "-", "")
+	deviceSecret := strings.ReplaceAll(uuid.NewV4().String(), "-", "")[0:18]
+	currentTime := time.Now().Format("2006/01/02 15:04:05")
+	username := fmt.Sprintf("%s&%s", productId, deviceId)
+
+	// 默认sha1
+	mac := hmac.New(sha1.New, []byte(deviceSecret))
+	mac.Write([]byte(fmt.Sprintf("%s%s", productId, deviceId)))
+	password := fmt.Sprintf("%x", mac.Sum(nil))
+
+	acl := &model.Acl{
+		BatchId:      batchId,
+		ProductID:    productId,
+		DeviceSecret: deviceSecret,
+		DeviceID:     deviceId,
+		PasswordHash: "sha1",
+		Role:         3, // 普通设备
+		Username:     username,
+		Password:     password,
+		CreateTime:   currentTime,
+		UpdateTime:   currentTime,
+		TopicList:    map[string]string{},
+	}
+	err := acl.Create()
+	if err != nil {
+		loge.Error(zap.Any("create acl failed.", err), zap.Any("acl", acl), zap.Any("request_id", requestId))
+	}
+}
+
+func checkAndCreateAcl(total, remaining int, batchId, productId, requestId string, lb *model.LicenseBatch) {
+	// 检测创建的acl数量
+	var acl model.Acl
+	m := bson.M{
+		"batch_id": batchId,
+	}
+	aclList, err := acl.List(m)
+
+	if err != nil {
+		loge.Error(zap.Any("get acl failed", err), zap.Any("request_id", requestId))
+		return
+	}
+
+	remaining = total-len(aclList)
+	for i := 0; i < remaining; i++ {
+		createAcl(batchId, productId, requestId)
+	}
+
+	// 已创建数量达到目标数量时，改变 license batch 状态
+	if len(aclList) == total {
+		filter := bson.M{"batch_id": bson.M{"$eq": lb.BatchId}}
+		update := bson.M{"$set": bson.M{"status": 2}}
+		if err := lb.UpdateOne(filter, update); err != nil {
+			loge.Error(zap.Any("update license batch failed.", err), zap.Any("lb", lb), zap.Any("request_id", requestId))
+		}
+		return
+	}
+
+	// 剩余数量大于0时，继续创建acl
+	if remaining > 0 {
+		checkAndCreateAcl(total, remaining, batchId, productId, requestId, lb)
+		return
+	}
+
+	return
 }
