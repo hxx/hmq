@@ -3,6 +3,7 @@ package broker
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/fhmq/hmq/loge"
 	"net"
 	"net/http"
 	"sync"
@@ -256,6 +257,8 @@ func (b *Broker) StartClusterListening() {
 }
 
 func (b *Broker) handleConnection(typ int, conn net.Conn) {
+	clientIp := conn.RemoteAddr().String()
+	loge.Debug("handle connect", zap.Any("remote client ip", clientIp))
 	//process connect packet
 	packet, err := packets.ReadPacket(conn)
 	if err != nil {
@@ -357,6 +360,7 @@ func (b *Broker) handleConnection(typ int, conn net.Conn) {
 		{
 			b.Publish(&bridge.Elements{
 				ClientID:  string(msg.ClientIdentifier),
+				ClientIP:  clientIp,
 				Username:  string(msg.Username),
 				Action:    bridge.Connect,
 				Timestamp: time.Now().Unix(),

@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+
 	"github.com/nats-io/stan.go"
 	"go.uber.org/zap"
-	"io/ioutil"
 )
 
 type natsConfig struct {
@@ -24,6 +25,7 @@ type natsClient struct {
 
 type EventMsg struct {
 	ClientID  string `json:"client_id"`
+	ClientIP  string `json:"client_ip"`
 	Ts        int64  `json:"ts"`
 	Payload   string `json:"payload,omitempty"`
 	EventType string `json:"event_type"`
@@ -64,6 +66,7 @@ func (n *natsClient) Publish(e *Elements) error {
 	case Connect, Disconnect:
 		eMsg := &EventMsg{
 			ClientID:  e.ClientID,
+			ClientIP:  e.ClientIP,
 			Ts:        e.Timestamp,
 			EventType: e.Action,
 		}
@@ -79,6 +82,7 @@ func (n *natsClient) Publish(e *Elements) error {
 				if match {
 					eMsg := &EventMsg{
 						ClientID:  e.ClientID,
+						ClientIP:  e.ClientIP,
 						Ts:        e.Timestamp,
 						Payload:   e.Payload,
 						EventType: e.Action,

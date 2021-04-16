@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/fhmq/hmq/loge"
 	"math/rand"
 	"net"
 	"reflect"
@@ -255,6 +256,10 @@ func ProcessMessage(msg *Message) {
 	}
 
 	if c.typ == CLIENT {
+		if msg.client.conn != nil {
+			rip := msg.client.conn.RemoteAddr().String()
+			loge.Debug("client process message", zap.Any("remote ip", rip))
+		}
 		log.Debug("Recv message:", zap.String("message type", reflect.TypeOf(msg.packet).String()[9:]), zap.String("ClientID", c.info.clientID))
 	}
 
@@ -409,6 +414,7 @@ func (c *client) processClientPublish(packet *packets.PublishPacket) {
 	//publish kafka
 	c.broker.Publish(&bridge.Elements{
 		ClientID:  c.info.clientID,
+		ClientIP:  c.info.remoteIP,
 		Username:  c.info.username,
 		Action:    bridge.Publish,
 		Timestamp: time.Now().Unix(),
@@ -537,6 +543,7 @@ func (c *client) processClientSubscribe(packet *packets.SubscribePacket) {
 
 		b.Publish(&bridge.Elements{
 			ClientID:  c.info.clientID,
+			ClientIP:  c.info.remoteIP,
 			Username:  c.info.username,
 			Action:    bridge.Subscribe,
 			Timestamp: time.Now().Unix(),
@@ -723,6 +730,7 @@ func (c *client) processClientUnSubscribe(packet *packets.UnsubscribePacket) {
 
 			b.Publish(&bridge.Elements{
 				ClientID:  c.info.clientID,
+				ClientIP:  c.info.remoteIP,
 				Username:  c.info.username,
 				Action:    bridge.Unsubscribe,
 				Timestamp: time.Now().Unix(),
@@ -779,6 +787,7 @@ func (c *client) Close() {
 	b := c.broker
 	b.Publish(&bridge.Elements{
 		ClientID:  c.info.clientID,
+		ClientIP:  c.info.remoteIP,
 		Username:  c.info.username,
 		Action:    bridge.Disconnect,
 		Timestamp: time.Now().Unix(),

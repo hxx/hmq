@@ -25,6 +25,7 @@ var (
 //Elements kafka publish elements
 type Elements struct {
 	ClientID  string `json:"clientid"`
+	ClientIP  string `json:"client_ip"`
 	Username  string `json:"username"`
 	Topic     string `json:"topic"`
 	Payload   string `json:"payload"`
